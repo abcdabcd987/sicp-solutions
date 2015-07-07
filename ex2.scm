@@ -312,3 +312,97 @@
 (reverse-fold-left mylist)
 (reverse-fold-right mylist)
 
+; ex 2.40
+
+(define (filter predicate sequence)
+  (cond ((null? sequence) '())
+        ((predicate (car sequence))
+         (cons (car sequence)
+               (filter predicate (cdr sequence))))
+        (else (filter predicate (cdr sequence)))))
+
+(define (flatmap proc seq)
+  (accumulate append '() (map proc seq)))
+
+(define (enumerate-interval low high)
+  (if (> low high)
+      '()
+      (cons low (enumerate-interval (+ low 1) high))))
+
+(define (unique-pairs n)
+  (flatmap
+   (lambda (i)
+     (map (lambda (j) (list i j))
+          (enumerate-interval 1 (- i 1))))
+   (enumerate-interval 1 n)))
+
+(define (prime? n)
+  (define (iter d)
+    (cond ((> (* d d) n) #t)
+          ((= (remainder n d) 0) #f)
+          (else (iter (+ 1 d)))))
+  (if (< n 2) #f (iter 2)))
+        
+
+(define (prime-sum-pairs n)
+  (define (prime-sum? pair)
+    (prime? (+ (car pair) (cadr pair))))
+  (define (make-pair-sum pair)
+    (let ((a (car pair))
+          (b (cadr pair)))
+      (list a b (+ a b))))
+  (map make-pair-sum
+       (filter prime-sum? (unique-pairs n))))
+
+(unique-pairs 5)
+(prime-sum-pairs 6)
+
+
+; ex 2.41
+
+(define (ordered-triple-sum n)
+  (flatmap
+   (lambda (i)
+     (map (lambda (j) (list i j (- n i j)))
+          (enumerate-interval 1 (- n i 1))))
+   (enumerate-interval 1 n)))
+
+(ordered-triple-sum 5)
+
+
+; ex 2.42
+
+(define (queens board-size)
+  (define empty-board '())
+  (define (adjoin-position row col board)
+    (cons (cons row col) board))
+  (define (safe? board)
+    (define row (caar board))
+    (define col (cdar board))
+    (define (recu rest)
+      (if (null? rest)
+          #t
+          (and (let ((r (caar rest))
+                     (c (cdar rest)))
+                 (not (or (= (- r c) (- row col))
+                          (= (+ r c) (+ row col))
+                          (= r row))))
+               (recu (cdr rest)))))
+    (recu (cdr board)))
+  (define (queen-cols k)
+    (if (= k 0)
+        (list empty-board)
+        (filter
+         safe?
+         (flatmap
+          (lambda (rest-of-queens)
+            (map (lambda (new-row)
+                   (adjoin-position new-row k rest-of-queens))
+                 (enumerate-interval 1 board-size)))
+          (queen-cols (- k 1))))))
+  (queen-cols board-size))
+
+(define before (current-inexact-milliseconds))
+(length (queens 12))
+(define after (current-inexact-milliseconds))
+(/ (- after before) 1000.0)
